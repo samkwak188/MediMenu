@@ -53,7 +53,7 @@ export default function AuthScreen({ onAuth }) {
                         >
                             <span className="role-icon">👤</span>
                             <h3>I'm a Customer</h3>
-                            <p>Scan menus to check food safety based on your allergies, medications, and dietary restrictions</p>
+                            <p>Scan a restaurant's QR code to check food safety based on your allergies, medications, and dietary restrictions</p>
                         </button>
 
                         <button
