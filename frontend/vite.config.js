@@ -5,5 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // SPA fallback: serve index.html for all routes (e.g. /dashboard)
+    historyApiFallback: true,
   },
 });

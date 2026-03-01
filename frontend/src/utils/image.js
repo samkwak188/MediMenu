@@ -1,5 +1,6 @@
-const MAX_IMAGE_BYTES = 19 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MIN_QUALITY = 0.45;
+const MAX_DIMENSION = 1200;
 
 function readFileAsDataURL(file) {
   return new Promise((resolve, reject) => {
@@ -55,7 +56,7 @@ function resizeDimensions(width, height, maxSide = 2200) {
 
 async function compressIfNeeded(file) {
   const image = await loadImageElement(file);
-  const dimensions = resizeDimensions(image.width, image.height, 2200);
+  const dimensions = resizeDimensions(image.width, image.height, MAX_DIMENSION);
   const canvas = document.createElement("canvas");
   canvas.width = dimensions.width;
   canvas.height = dimensions.height;
@@ -88,13 +89,6 @@ export async function prepareImageForUpload(file) {
     throw new Error("No image selected.");
   }
 
-  if (file.size <= MAX_IMAGE_BYTES) {
-    const dataUrl = await readFileAsDataURL(file);
-    return {
-      base64: getBase64FromDataUrl(dataUrl),
-      mimeType: file.type || "image/jpeg",
-    };
-  }
-
+  // Always compress and resize for faster uploads
   return compressIfNeeded(file);
 }

@@ -40,7 +40,7 @@ def get_settings() -> Settings:
         app_name="SafePlate API",
         openai_api_key=api_key,
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o").strip(),
-        openai_timeout_seconds=int(os.getenv("OPENAI_TIMEOUT_SECONDS", "45")),
+        openai_timeout_seconds=int(os.getenv("OPENAI_TIMEOUT_SECONDS", "90")),
         sqlite_path=os.getenv("SQLITE_PATH", "safeplate.db").strip(),
         cors_origins=_parse_csv(cors),
     )

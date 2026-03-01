@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 export default function AuthScreen({ onAuth }) {
+    const [role, setRole] = useState(""); // "" | "customer" | "restaurant"
     const [mode, setMode] = useState("signup"); // "signup" | "login"
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -27,9 +28,54 @@ export default function AuthScreen({ onAuth }) {
         onAuth({
             username: username.trim() || email.split("@")[0],
             email: email.trim(),
+            role,
         });
     }
 
+    // ── Step 1: Role Selection ─────────────────────
+    if (!role) {
+        return (
+            <div className="auth-screen">
+                <div className="auth-card auth-card-wide">
+                    <div className="auth-logo">
+                        <span className="auth-logo-icon">🍽️</span>
+                        <h1>SafePlate</h1>
+                    </div>
+                    <p className="auth-subtitle">
+                        AI-powered food safety for allergens &amp; medication interactions
+                    </p>
+
+                    <div className="role-selector">
+                        <button
+                            type="button"
+                            className="role-card"
+                            onClick={() => setRole("customer")}
+                        >
+                            <span className="role-icon">👤</span>
+                            <h3>I'm a Customer</h3>
+                            <p>Scan menus to check food safety based on your allergies, medications, and dietary restrictions</p>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="role-card"
+                            onClick={() => setRole("restaurant")}
+                        >
+                            <span className="role-icon">🏪</span>
+                            <h3>I'm a Restaurant Owner</h3>
+                            <p>Upload your menu, manage allergen compliance, and generate QR codes for diners</p>
+                        </button>
+                    </div>
+
+                    <p className="auth-hint">
+                        Demo mode — select a role to continue
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Step 2: Login / Signup Form ────────────────
     return (
         <div className="auth-screen">
             <div className="auth-card">
@@ -38,8 +84,24 @@ export default function AuthScreen({ onAuth }) {
                     <h1>SafePlate</h1>
                 </div>
                 <p className="auth-subtitle">
-                    AI-powered menu safety scanner for allergens &amp; medication interactions
+                    {role === "customer"
+                        ? "Sign in to scan menus & check food safety"
+                        : "Sign in to manage your restaurant dashboard"}
                 </p>
+
+                <div className="auth-role-indicator">
+                    <span className="role-indicator-icon">
+                        {role === "customer" ? "👤" : "🏪"}
+                    </span>
+                    <span>{role === "customer" ? "Customer" : "Restaurant Owner"}</span>
+                    <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => { setRole(""); setError(""); }}
+                    >
+                        Switch
+                    </button>
+                </div>
 
                 <div className="auth-tabs">
                     <button
@@ -61,11 +123,13 @@ export default function AuthScreen({ onAuth }) {
                 <form onSubmit={handleSubmit} className="auth-form">
                     {mode === "signup" && (
                         <div className="form-group">
-                            <label htmlFor="username">Username</label>
+                            <label htmlFor="username">
+                                {role === "customer" ? "Username" : "Restaurant Name"}
+                            </label>
                             <input
                                 id="username"
                                 type="text"
-                                placeholder="johndoe"
+                                placeholder={role === "customer" ? "johndoe" : "Seoul Kitchen"}
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 autoComplete="username"

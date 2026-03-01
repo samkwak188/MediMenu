@@ -1,63 +1,175 @@
 import { useEffect, useState } from "react";
-import { analyzeMenu, createProfile, fetchHistory, fetchProfile } from "./api";
+import { Route, Routes, useNavigate } from "react-router-dom";
+import {
+  createProfile,
+  fetchPersonalizedMenu,
+  fetchProfile,
+} from "./api";
 import AuthScreen from "./components/AuthScreen";
-import HistoryPanel from "./components/HistoryPanel";
 import ProfileForm from "./components/ProfileForm";
-import ResultsView from "./components/ResultsView";
+import QRScanner from "./components/QRScanner";
+import RestaurantDashboard from "./components/RestaurantDashboard";
 
 const STORAGE_KEY = "safeplate_profile_id";
-const IMAGE_CACHE_KEY = "safeplate_images";
 const AUTH_KEY = "safeplate_user";
-const MAX_CACHED_IMAGES = 10;
 
-function loadImageCache() {
-  try { return JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || "{}"); } catch { return {}; }
-}
+// Hackathon demo: clear all saved state on page load so every session starts fresh
+localStorage.removeItem(STORAGE_KEY);
+localStorage.removeItem(AUTH_KEY);
+localStorage.removeItem("safeplate_restaurant_id");
+localStorage.removeItem("safeplate_images");
 
-function saveImageCache(cache) {
-  const keys = Object.keys(cache);
-  if (keys.length > MAX_CACHED_IMAGES) {
-    keys.slice(0, keys.length - MAX_CACHED_IMAGES).forEach((k) => delete cache[k]);
+/* ── Personalized Restaurant Menu View (QR scan) ── */
+function PersonalizedView({ restaurantData, onBack }) {
+  const [filter, setFilter] = useState(null); // null = show all, "green" | "yellow" | "red"
+
+  if (!restaurantData) return null;
+
+  const { restaurant_name, dishes, safety_score } = restaurantData;
+  const counts = { green: 0, yellow: 0, red: 0 };
+  dishes.forEach((d) => { if (counts[d.risk] !== undefined) counts[d.risk] += 1; });
+
+  const filteredDishes = filter ? dishes.filter((d) => d.risk === filter) : dishes;
+  const scoreColor = safety_score >= 70 ? "var(--ok)" : safety_score >= 40 ? "var(--warn)" : "var(--danger)";
+
+  function toggleFilter(risk) {
+    setFilter((prev) => (prev === risk ? null : risk));
   }
-  try { localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache)); } catch { /* ignore */ }
+
+  return (
+    <section className="unified-panel">
+      <button
+        className="btn btn-ghost btn-sm"
+        type="button"
+        onClick={onBack}
+        style={{ marginBottom: "1rem" }}
+      >
+        ← Scan Another QR
+      </button>
+
+      <h2>🍽️ {restaurant_name}</h2>
+
+      {safety_score != null && (
+        <div className="safety-score-banner">
+          <div className="safety-score-circle" style={{ borderColor: scoreColor, color: scoreColor }}>
+            {Math.round(safety_score)}
+          </div>
+          <div>
+            <p style={{ fontWeight: 600, color: "var(--text-main)", margin: 0 }}>
+              Menu Safety Score
+            </p>
+            <p className="muted" style={{ fontSize: "0.8rem" }}>
+              Personalized for your dietary profile
+            </p>
+          </div>
+        </div>
+      )}
+
+      <p className="muted" style={{ marginBottom: "1.5rem" }}>
+        Menu personalized for your dietary profile
+        {filter && <span style={{ fontWeight: 600, marginLeft: "0.5rem" }}>
+          — showing {filter === "green" ? "OK" : filter === "yellow" ? "Caution" : "Avoid"} only
+        </span>}
+      </p>
+
+      <div className="summary-grid">
+        <button
+          type="button"
+          className={`summary summary-clickable ${filter === "green" ? "summary-active" : ""}`}
+          style={{ borderColor: "var(--ok)" }}
+          onClick={() => toggleFilter("green")}
+        >
+          <span className="summary-count" style={{ color: "var(--ok)" }}>{counts.green}</span>
+          <span className="summary-label" style={{ color: "var(--ok)" }}>OK</span>
+        </button>
+        <button
+          type="button"
+          className={`summary summary-clickable ${filter === "yellow" ? "summary-active" : ""}`}
+          style={{ borderColor: "var(--warn)" }}
+          onClick={() => toggleFilter("yellow")}
+        >
+          <span className="summary-count" style={{ color: "var(--warn)" }}>{counts.yellow}</span>
+          <span className="summary-label" style={{ color: "var(--warn)" }}>Caution</span>
+        </button>
+        <button
+          type="button"
+          className={`summary summary-clickable ${filter === "red" ? "summary-active" : ""}`}
+          style={{ borderColor: "var(--danger)" }}
+          onClick={() => toggleFilter("red")}
+        >
+          <span className="summary-count" style={{ color: "var(--danger)" }}>{counts.red}</span>
+          <span className="summary-label" style={{ color: "var(--danger)" }}>Avoid</span>
+        </button>
+      </div>
+
+      <div className="results-card-col">
+        {filteredDishes.map((dish, i) => (
+          <div key={`${dish.dish}-${i}`} className="dish-card-personalized">
+            <div className="dish-header">
+              <h3>{dish.dish}</h3>
+              <span className={`badge badge-${dish.risk}`}>
+                {dish.risk === "green" ? "✓ OK" : dish.risk === "yellow" ? "⚡ Caution" : "⚠️ Avoid"}
+              </span>
+            </div>
+            {dish.inferred_ingredients?.length > 0 && (
+              <div className="ingredient-list">
+                <span className="ingredient-label">Ingredients: </span>
+                {dish.inferred_ingredients.join(", ")}
+              </div>
+            )}
+            {dish.cross_contact_risk && (
+              <p className="cross-contact-inline">
+                ⚠️ Cross-contact risk — shared cooking equipment
+              </p>
+            )}
+            {dish.flags?.length > 0 && (
+              <ul className="flag-list">
+                {dish.flags.map((flag, fi) => (
+                  <li key={fi}>
+                    {flag.detail}
+                    <span className="severity-tag">{flag.severity}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+        {filteredDishes.length === 0 && (
+          <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>
+            No dishes in this category.
+          </p>
+        )}
+      </div>
+    </section>
+  );
 }
 
-export default function App() {
-  // Auth state
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
-  });
-
-  // Profile state
+/* ── Consumer (B2C) view ─────────────────────────── */
+function ConsumerApp({ user, onLogout }) {
   const [profileId, setProfileId] = useState(localStorage.getItem(STORAGE_KEY) || "");
   const [profile, setProfile] = useState(null);
-
-  // Analysis state
-  const [history, setHistory] = useState([]);
-  const [currentAnalysis, setCurrentAnalysis] = useState(null);
-  const [analysisImages, setAnalysisImages] = useState(loadImageCache);
-  const [activeImageSrc, setActiveImageSrc] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [error, setError] = useState("");
 
-  // Load profile + history when profileId changes
+  // QR scan state
+  const [scannedRestaurantId, setScannedRestaurantId] = useState(null);
+  const [personalizedData, setPersonalizedData] = useState(null);
+  const [loadingPersonalized, setLoadingPersonalized] = useState(false);
+
+  // Load saved profile
   useEffect(() => {
     if (!profileId) return;
     let cancelled = false;
     (async () => {
       setError("");
       try {
-        const [p, h] = await Promise.all([fetchProfile(profileId), fetchHistory(profileId)]);
-        if (cancelled) return;
-        setProfile(p);
-        setHistory(h.analyses || []);
+        const p = await fetchProfile(profileId);
+        if (!cancelled) setProfile(p);
       } catch (err) {
         if (!cancelled) {
           localStorage.removeItem(STORAGE_KEY);
           setProfileId("");
           setProfile(null);
-          setHistory([]);
           setError(err.message || "Could not load saved profile.");
         }
       }
@@ -65,96 +177,58 @@ export default function App() {
     return () => { cancelled = true; };
   }, [profileId]);
 
-  /* ── handlers ──────────────────────────────────── */
-
-  function handleAuth(userData) {
-    setUser(userData);
-    localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
-  }
-
-  function handleLogout() {
-    setUser(null);
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(IMAGE_CACHE_KEY);
-    setProfileId("");
-    setProfile(null);
-    setHistory([]);
-    setCurrentAnalysis(null);
-    setActiveImageSrc("");
-    setError("");
-  }
-
-  async function handleCreateProfile({ allergies, medications }) {
+  async function handleCreateProfile({ allergies, medications, dietaryRestrictions }) {
     setLoadingProfile(true);
     setError("");
     try {
-      const created = await createProfile(allergies, medications);
+      const created = await createProfile(allergies, medications, dietaryRestrictions);
       localStorage.setItem(STORAGE_KEY, created.id);
       setProfileId(created.id);
       setProfile(created);
-      setHistory([]);
-      setCurrentAnalysis(null);
     } finally {
       setLoadingProfile(false);
     }
   }
 
-  async function handleAnalyze({ base64, mimeType, imageDataUrl }) {
-    if (!profileId) throw new Error("Create a profile first.");
-    setLoadingAnalysis(true);
+  async function handleQRScan(restaurantId) {
+    if (!profileId) return;
+    setScannedRestaurantId(restaurantId);
+    setLoadingPersonalized(true);
     setError("");
     try {
-      const analysis = await analyzeMenu(profileId, base64, mimeType);
-      setCurrentAnalysis(analysis);
-      setActiveImageSrc(imageDataUrl || "");
-
-      const updatedCache = { ...analysisImages, [analysis.analysis_id]: imageDataUrl || "" };
-      setAnalysisImages(updatedCache);
-      saveImageCache(updatedCache);
-
-      const histData = await fetchHistory(profileId);
-      setHistory(histData.analyses || []);
+      const data = await fetchPersonalizedMenu(restaurantId, profileId);
+      setPersonalizedData(data);
     } catch (err) {
-      setError(err.message || "Analysis failed.");
-      throw err;
+      setError(err.message || "Could not load restaurant menu.");
+      setScannedRestaurantId(null);
     } finally {
-      setLoadingAnalysis(false);
+      setLoadingPersonalized(false);
     }
   }
 
-  function handleSelectHistory(entry) {
-    setCurrentAnalysis(entry);
-    setActiveImageSrc(analysisImages[entry.analysis_id] || "");
+  function handleBackToScanner() {
+    setScannedRestaurantId(null);
+    setPersonalizedData(null);
+    setError("");
   }
 
   function handleEditProfile() {
     setProfile(null);
     setProfileId("");
     localStorage.removeItem(STORAGE_KEY);
-    setCurrentAnalysis(null);
-    setHistory([]);
+    setPersonalizedData(null);
+    setScannedRestaurantId(null);
   }
 
-  /* ── render ────────────────────────────────────── */
-
-  // Step 1: Auth screen
-  if (!user) {
-    return <AuthScreen onAuth={handleAuth} />;
-  }
-
-  // Step 2: Profile setup (if no profile yet)
-  // Step 3: Scanner + Results (if profile exists)
   return (
     <div className="app-shell">
-      {/* Top bar */}
       <header className="app-topbar">
         <div className="topbar-left">
           <span className="topbar-logo">🍽️ SafePlate</span>
         </div>
         <div className="topbar-right">
           <span className="topbar-user">👤 {user.username}</span>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={handleLogout}>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={onLogout}>
             Log Out
           </button>
         </div>
@@ -163,32 +237,88 @@ export default function App() {
       {error && <p className="error global-error">{error}</p>}
 
       {!profile ? (
-        /* Step 2: Profile preferences */
         <ProfileForm onSave={handleCreateProfile} loading={loadingProfile} />
       ) : (
-        /* Step 3: Scanner app */
         <>
           <div className="profile-chip">
             <div className="profile-chip-content">
               <h3>Your Profile</h3>
               <p><strong>Allergies:</strong> {profile.allergies.length ? profile.allergies.join(", ") : "None"}</p>
               <p><strong>Medications:</strong> {profile.medications.length ? profile.medications.join(", ") : "None"}</p>
+              {profile.dietary_restrictions?.length > 0 && (
+                <p><strong>Diet:</strong> {profile.dietary_restrictions.join(", ")}</p>
+              )}
             </div>
             <button className="btn btn-ghost btn-sm" type="button" onClick={handleEditProfile}>
               Edit Profile
             </button>
           </div>
 
-          <ResultsView
-            analysis={currentAnalysis}
-            imageSrc={activeImageSrc}
-            onAnalyze={handleAnalyze}
-            loading={loadingAnalysis}
-          />
-
-          {history.length > 0 && <HistoryPanel analyses={history} onSelect={handleSelectHistory} />}
+          {/* Show QR Scanner or Personalized Results */}
+          {!scannedRestaurantId ? (
+            <QRScanner onScan={handleQRScan} loading={loadingPersonalized} />
+          ) : (
+            <>
+              {loadingPersonalized ? (
+                <div className="loading-overlay">
+                  <div className="spinner" />
+                  <p className="loading-text">Loading personalized menu…</p>
+                </div>
+              ) : personalizedData ? (
+                <PersonalizedView
+                  restaurantData={personalizedData}
+                  onBack={handleBackToScanner}
+                />
+              ) : null}
+            </>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+/* ── Root App with routing ───────────────────────── */
+export default function App() {
+  const navigate = useNavigate();
+
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
+  });
+
+  function handleAuth(userData) {
+    setUser(userData);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+    if (userData.role === "restaurant") {
+      navigate("/dashboard");
+    } else {
+      navigate("/");
+    }
+  }
+
+  function handleLogout() {
+    setUser(null);
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    navigate("/");
+  }
+
+  if (!user) {
+    return <AuthScreen onAuth={handleAuth} />;
+  }
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={<ConsumerApp user={user} onLogout={handleLogout} />}
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <RestaurantDashboard onLogout={handleLogout} />
+        }
+      />
+    </Routes>
   );
 }

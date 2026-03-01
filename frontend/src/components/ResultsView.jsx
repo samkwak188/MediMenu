@@ -5,8 +5,8 @@ const RISK_ORDER = { red: 0, yellow: 1, green: 2 };
 
 const RISK_META = {
   red: { label: "Avoid", icon: "⚠️", cardClass: "risk-red", markerClass: "marker-red" },
-  yellow: { label: "Caution", icon: "⚡", cardClass: "risk-yellow", markerClass: "marker-yellow" },
-  green: { label: "Safe", icon: "✓", cardClass: "risk-green", markerClass: "marker-green" },
+  yellow: { label: "Caution", sublabel: "Confirm with staff", icon: "⚡", cardClass: "risk-yellow", markerClass: "marker-yellow" },
+  green: { label: "OK", icon: "✓", cardClass: "risk-green", markerClass: "marker-green" },
 };
 
 function countByRisk(dishes) {

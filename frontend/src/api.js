@@ -27,10 +27,16 @@ async function request(path, options = {}) {
   return data;
 }
 
-export async function createProfile(allergies, medications) {
+// ── B2C Consumer API ───────────────────────────────
+
+export async function createProfile(allergies, medications, dietaryRestrictions = []) {
   return request("/api/profile", {
     method: "POST",
-    body: JSON.stringify({ allergies, medications }),
+    body: JSON.stringify({
+      allergies,
+      medications,
+      dietary_restrictions: dietaryRestrictions,
+    }),
   });
 }
 
@@ -51,4 +57,51 @@ export async function analyzeMenu(profileId, imageBase64, mimeType) {
 
 export async function fetchHistory(profileId) {
   return request(`/api/history/${encodeURIComponent(profileId)}`);
+}
+
+// ── B2B Restaurant API ─────────────────────────────
+
+export async function createRestaurant(name) {
+  return request("/api/restaurant", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function listRestaurants() {
+  return request("/api/restaurants");
+}
+
+export async function analyzeRestaurantMenu(restaurantId, imageBase64, mimeType) {
+  return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/menu`, {
+    method: "POST",
+    body: JSON.stringify({ image: imageBase64, mime_type: mimeType }),
+  });
+}
+
+export async function fetchRestaurantMenu(restaurantId) {
+  return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/menu`);
+}
+
+export async function editRestaurantMenu(restaurantId, dishes) {
+  return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/menu`, {
+    method: "PUT",
+    body: JSON.stringify({ dishes }),
+  });
+}
+
+export async function confirmRestaurantMenu(restaurantId) {
+  return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/menu/confirm`, {
+    method: "POST",
+  });
+}
+
+export async function fetchPersonalizedMenu(restaurantId, profileId) {
+  return request(
+    `/api/restaurant/${encodeURIComponent(restaurantId)}/menu/personalized?profile_id=${encodeURIComponent(profileId)}`
+  );
+}
+
+export async function fetchRestaurantAnalytics(restaurantId) {
+  return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/analytics`);
 }
