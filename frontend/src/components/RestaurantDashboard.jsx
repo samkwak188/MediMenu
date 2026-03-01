@@ -13,8 +13,9 @@ import AllergenMatrix from "./AllergenMatrix";
 import MenuSafetyScore from "./MenuSafetyScore";
 import QRCodeCard from "./QRCodeCard";
 import RestaurantAnalytics from "./RestaurantAnalytics";
+import logo from "../../logo.png";
 
-const STORAGE_KEY = "safeplate_restaurant_id";
+const STORAGE_KEY = "medimenu_restaurant_id";
 
 export default function RestaurantDashboard({ onLogout }) {
     /* ── state ──────────────────────────────────────── */
@@ -190,7 +191,7 @@ export default function RestaurantDashboard({ onLogout }) {
         <div className="app-shell">
             <header className="app-topbar dashboard-topbar">
                 <div className="topbar-left">
-                    <span className="topbar-logo">🍽️ SafePlate</span>
+                    <img src={logo} alt="MediMenu" className="topbar-logo-img" />
                     <span className="topbar-badge">Restaurant Dashboard</span>
                 </div>
                 <div className="topbar-right">
@@ -246,7 +247,7 @@ export default function RestaurantDashboard({ onLogout }) {
                 <main className="dashboard-main">
                     {!selectedId ? (
                         <div className="dashboard-empty">
-                            <h2>Welcome to SafePlate for Restaurants</h2>
+                            <h2>Welcome to MediMenu for Restaurants</h2>
                             <p>Select a restaurant or create a new one to get started.</p>
                             <div className="dashboard-features">
                                 <div className="feature-card">

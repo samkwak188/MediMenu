@@ -9,15 +9,16 @@ import AuthScreen from "./components/AuthScreen";
 import ProfileForm from "./components/ProfileForm";
 import QRScanner from "./components/QRScanner";
 import RestaurantDashboard from "./components/RestaurantDashboard";
+import logo from "../logo.png";
 
-const STORAGE_KEY = "safeplate_profile_id";
-const AUTH_KEY = "safeplate_user";
+const STORAGE_KEY = "medimenu_profile_id";
+const AUTH_KEY = "medimenu_user";
 
 // Hackathon demo: clear all saved state on page load so every session starts fresh
 localStorage.removeItem(STORAGE_KEY);
 localStorage.removeItem(AUTH_KEY);
-localStorage.removeItem("safeplate_restaurant_id");
-localStorage.removeItem("safeplate_images");
+localStorage.removeItem("medimenu_restaurant_id");
+localStorage.removeItem("medimenu_images");
 
 /* ── Personalized Restaurant Menu View (QR scan) ── */
 function PersonalizedView({ restaurantData, onBack }) {
@@ -47,7 +48,7 @@ function PersonalizedView({ restaurantData, onBack }) {
         ← Scan Another QR
       </button>
 
-      <h2>🍽️ {restaurant_name}</h2>
+      <h2>{restaurant_name}</h2>
 
       {safety_score != null && (
         <div className="safety-score-banner">
@@ -224,7 +225,7 @@ function ConsumerApp({ user, onLogout }) {
     <div className="app-shell">
       <header className="app-topbar">
         <div className="topbar-left">
-          <span className="topbar-logo">🍽️ SafePlate</span>
+          <img src={logo} alt="MediMenu" className="topbar-logo-img" />
         </div>
         <div className="topbar-right">
           <span className="topbar-user">👤 {user.username}</span>

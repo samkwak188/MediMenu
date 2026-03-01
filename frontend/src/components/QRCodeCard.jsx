@@ -25,8 +25,7 @@ export default function QRCodeCard({ restaurantId, restaurantName, confirmed }) 
                         />
                     </div>
                     <div className="qr-badge">
-                        <span className="qr-badge-icon">🍽️</span>
-                        <span className="qr-badge-text">Powered by SafePlate</span>
+                        <span className="qr-badge-text">Powered by MediMenu</span>
                     </div>
                     <p className="qr-url-preview">{scanUrl}</p>
                 </>

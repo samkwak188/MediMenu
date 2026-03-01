@@ -37,7 +37,7 @@ export default function QRScanner({ onScan, loading }) {
             if (restaurantId) {
                 onScan(restaurantId);
             } else {
-                setError("This QR code doesn't contain a valid SafePlate restaurant link.");
+                setError("This QR code doesn't contain a valid MediMenu restaurant link.");
             }
             await scanner.clear();
         } catch {

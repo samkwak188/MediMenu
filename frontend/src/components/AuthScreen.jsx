@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "../../logo.png";
 
 export default function AuthScreen({ onAuth }) {
     const [role, setRole] = useState(""); // "" | "customer" | "restaurant"
@@ -38,8 +39,7 @@ export default function AuthScreen({ onAuth }) {
             <div className="auth-screen">
                 <div className="auth-card auth-card-wide">
                     <div className="auth-logo">
-                        <span className="auth-logo-icon">🍽️</span>
-                        <h1>SafePlate</h1>
+                        <img src={logo} alt="MediMenu" className="auth-logo-img" />
                     </div>
                     <p className="auth-subtitle">
                         AI-powered food safety for allergens &amp; medication interactions
@@ -80,8 +80,7 @@ export default function AuthScreen({ onAuth }) {
         <div className="auth-screen">
             <div className="auth-card">
                 <div className="auth-logo">
-                    <span className="auth-logo-icon">🍽️</span>
-                    <h1>SafePlate</h1>
+                    <img src={logo} alt="MediMenu" className="auth-logo-img" />
                 </div>
                 <p className="auth-subtitle">
                     {role === "customer"

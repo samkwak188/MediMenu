@@ -55,7 +55,7 @@ export default function ProfileForm({ onSave, loading }) {
     <section className="profile-form-container">
       <h2>Profile Setup</h2>
       <p className="muted">
-        Add your allergies, medications, and dietary restrictions. SafePlate uses this profile for every scan to personalize results.
+        Add your allergies, medications, and dietary restrictions. MediMenu uses this profile for every scan to personalize results.
       </p>
 
       <form onSubmit={handleSubmit}>
