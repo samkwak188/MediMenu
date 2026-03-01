@@ -264,6 +264,18 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
     user_restrictions = set(r.lower() for r in profile.get("dietary_restrictions", []))
     flagged_allergens: list[str] = []
 
+    # Build a set of all allergens present anywhere on this menu.
+    # Cross-contact is only relevant if the allergen exists in the kitchen
+    # (i.e. at least one other dish on the menu contains it).
+    all_menu_ingredients = set()
+    all_menu_confirmed = set()
+    for d in menu["dishes"]:
+        for ing in d.get("inferred_ingredients", []):
+            all_menu_ingredients.add(ing.lower())
+        for ca in d.get("confirmed_allergens", []):
+            all_menu_confirmed.add(ca.lower())
+    allergens_present_on_menu = all_menu_ingredients | all_menu_confirmed
+
     personalized_dishes: list[dict] = []
     for dish in menu["dishes"]:
         ingredients_lower = [i.lower() for i in dish.get("inferred_ingredients", [])]
@@ -285,7 +297,7 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
                 })
                 risk = "red"
                 flagged_allergens.append(allergen)
-            elif cross_contact:
+            elif cross_contact and allergen in allergens_present_on_menu:
                 flags.append({
                     "type": "allergen",
                     "detail": f"Possible cross-contact with {allergen} — confirm with staff",
