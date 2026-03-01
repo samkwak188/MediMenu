@@ -128,9 +128,9 @@ For local set up, refer to below steps:
 - `GET /api/restaurant/{restaurant_id}/analytics` - View scan analytics
 
 
-## 📱 Mobile Deployment (Local & Cloud)
+## 📱 Mobile Testing
 
-MediMenu is designed as a responsive, mobile-first web application. Here is how you can deploy and view it on a mobile device:
+MediMenu is designed as a responsive, mobile-first web application (React). Here is how you can deploy and view it on a mobile device:
 
 ### Local Network (Your Phone)
 Go to https://medimenu-frontend.onrender.com on your phone for demo.
