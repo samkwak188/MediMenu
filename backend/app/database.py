@@ -61,6 +61,7 @@ def initialize_database() -> None:
             CREATE TABLE IF NOT EXISTS restaurants (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
+                location TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             );
             """
@@ -87,6 +88,20 @@ def initialize_database() -> None:
                 flagged_allergens_json TEXT NOT NULL DEFAULT '[]',
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS meal_records (
+                id TEXT PRIMARY KEY,
+                profile_id TEXT NOT NULL,
+                restaurant_name TEXT NOT NULL,
+                restaurant_location TEXT NOT NULL DEFAULT '',
+                dish_name TEXT NOT NULL,
+                ingredients_json TEXT NOT NULL DEFAULT '[]',
+                date TEXT NOT NULL,
+                FOREIGN KEY(profile_id) REFERENCES user_profiles(id) ON DELETE CASCADE
             );
             """
         )
@@ -207,40 +222,40 @@ TOP_14_ALLERGENS = [
 ]
 
 
-def create_restaurant(name: str) -> dict[str, Any]:
+def create_restaurant(name: str, location: str = "") -> dict[str, Any]:
     restaurant_id = str(uuid.uuid4())
     created_at = _utc_now_iso()
     conn = _get_connection()
 
     with _LOCK:
         conn.execute(
-            "INSERT INTO restaurants (id, name, created_at) VALUES (?, ?, ?);",
-            (restaurant_id, name, created_at),
+            "INSERT INTO restaurants (id, name, location, created_at) VALUES (?, ?, ?, ?);",
+            (restaurant_id, name, location, created_at),
         )
         conn.commit()
 
-    return {"id": restaurant_id, "name": name, "created_at": created_at}
+    return {"id": restaurant_id, "name": name, "location": location, "created_at": created_at}
 
 
 def get_restaurant(restaurant_id: str) -> dict[str, Any] | None:
     conn = _get_connection()
     with _LOCK:
         row = conn.execute(
-            "SELECT id, name, created_at FROM restaurants WHERE id = ?;",
+            "SELECT id, name, location, created_at FROM restaurants WHERE id = ?;",
             (restaurant_id,),
         ).fetchone()
     if row is None:
         return None
-    return {"id": row["id"], "name": row["name"], "created_at": row["created_at"]}
+    return {"id": row["id"], "name": row["name"], "location": row["location"], "created_at": row["created_at"]}
 
 
 def list_restaurants() -> list[dict[str, Any]]:
     conn = _get_connection()
     with _LOCK:
         rows = conn.execute(
-            "SELECT id, name, created_at FROM restaurants ORDER BY created_at DESC;"
+            "SELECT id, name, location, created_at FROM restaurants ORDER BY created_at DESC;"
         ).fetchall()
-    return [{"id": r["id"], "name": r["name"], "created_at": r["created_at"]} for r in rows]
+    return [{"id": r["id"], "name": r["name"], "location": r["location"], "created_at": r["created_at"]} for r in rows]
 
 
 def _build_allergen_matrix(dishes: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
@@ -507,6 +522,64 @@ def log_scan(restaurant_id: str | None, flagged_allergens: list[str]) -> None:
             (str(uuid.uuid4()), restaurant_id, json.dumps(flagged_allergens), _utc_now_iso()),
         )
         conn.commit()
+
+
+def create_meal_record(
+    profile_id: str,
+    restaurant_name: str,
+    restaurant_location: str,
+    dish_name: str,
+    ingredients: list[str],
+) -> dict[str, Any]:
+    record_id = str(uuid.uuid4())
+    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    conn = _get_connection()
+
+    with _LOCK:
+        conn.execute(
+            """
+            INSERT INTO meal_records (id, profile_id, restaurant_name, restaurant_location, dish_name, ingredients_json, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """,
+            (record_id, profile_id, restaurant_name, restaurant_location, dish_name, json.dumps(ingredients), date),
+        )
+        conn.commit()
+
+    return {
+        "id": record_id,
+        "profile_id": profile_id,
+        "restaurant_name": restaurant_name,
+        "restaurant_location": restaurant_location,
+        "dish_name": dish_name,
+        "ingredients": ingredients,
+        "date": date,
+    }
+
+
+def list_meal_records(profile_id: str) -> list[dict[str, Any]]:
+    conn = _get_connection()
+    with _LOCK:
+        rows = conn.execute(
+            """
+            SELECT id, profile_id, restaurant_name, restaurant_location, dish_name, ingredients_json, date
+            FROM meal_records
+            WHERE profile_id = ?
+            ORDER BY date DESC;
+            """,
+            (profile_id,),
+        ).fetchall()
+    return [
+        {
+            "id": row["id"],
+            "profile_id": row["profile_id"],
+            "restaurant_name": row["restaurant_name"],
+            "restaurant_location": row["restaurant_location"],
+            "dish_name": row["dish_name"],
+            "ingredients": json.loads(row["ingredients_json"]),
+            "date": row["date"],
+        }
+        for row in rows
+    ]
 
 
 def get_restaurant_analytics(restaurant_id: str) -> dict[str, Any]:

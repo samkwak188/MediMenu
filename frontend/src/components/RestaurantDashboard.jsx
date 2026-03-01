@@ -22,6 +22,7 @@ export default function RestaurantDashboard({ onLogout }) {
     const [restaurants, setRestaurants] = useState([]);
     const [selectedId, setSelectedId] = useState(localStorage.getItem(STORAGE_KEY) || "");
     const [newName, setNewName] = useState("");
+    const [newLocation, setNewLocation] = useState("");
     const [menu, setMenu] = useState(null);
     const [analytics, setAnalytics] = useState(null);
     const [file, setFile] = useState(null);
@@ -126,10 +127,11 @@ export default function RestaurantDashboard({ onLogout }) {
         if (!newName.trim()) return;
         setError("");
         try {
-            const created = await createRestaurant(newName.trim());
+            const created = await createRestaurant(newName.trim(), newLocation.trim());
             setRestaurants((prev) => [created, ...prev]);
             setSelectedId(created.id);
             setNewName("");
+            setNewLocation("");
         } catch (err) {
             setError(err.message || "Failed to create restaurant.");
         }
@@ -207,12 +209,19 @@ export default function RestaurantDashboard({ onLogout }) {
                 {/* ── Sidebar: restaurant list ─────────── */}
                 <aside className="dashboard-sidebar">
                     <h3>Your Restaurants</h3>
-                    <form onSubmit={handleCreateRestaurant} className="sidebar-form">
+                    <form onSubmit={handleCreateRestaurant} className="sidebar-form sidebar-form-col">
                         <input
                             type="text"
                             placeholder="Restaurant name..."
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
+                            className="sidebar-input"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Location (e.g. 123 Main St)"
+                            value={newLocation}
+                            onChange={(e) => setNewLocation(e.target.value)}
                             className="sidebar-input"
                         />
                         <button className="btn btn-primary btn-sm" type="submit">
@@ -228,9 +237,12 @@ export default function RestaurantDashboard({ onLogout }) {
                                     className={`restaurant-item ${r.id === selectedId ? "active" : ""}`}
                                     onClick={() => setSelectedId(r.id)}
                                 >
-                                    <span className="restaurant-item-name">{r.name}</span>
-                                    <span className="restaurant-item-date">
-                                        {new Date(r.created_at).toLocaleDateString()}
+                                    <span className="restaurant-item-info">
+                                        <span className="restaurant-item-name">{r.name}</span>
+                                        {r.location && <span className="restaurant-item-location">{r.location}</span>}
+                                        <span className="restaurant-item-date">
+                                            {new Date(r.created_at).toLocaleDateString()}
+                                        </span>
                                     </span>
                                 </button>
                             </li>

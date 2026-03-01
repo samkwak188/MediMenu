@@ -156,12 +156,31 @@ class HistoryResponse(BaseModel):
 
 class RestaurantCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    location: str = Field(default="", max_length=300)
 
 
 class RestaurantResponse(BaseModel):
     id: str
     name: str
+    location: str
     created_at: str
+
+
+class MealRecordCreateRequest(BaseModel):
+    profile_id: str = Field(min_length=1)
+    restaurant_id: str = Field(min_length=1)
+    dish_name: str = Field(min_length=1)
+    ingredients: list[str] = Field(default_factory=list)
+
+
+class MealRecordResponse(BaseModel):
+    id: str
+    profile_id: str
+    restaurant_name: str
+    restaurant_location: str
+    dish_name: str
+    ingredients: list[str]
+    date: str
 
 
 class MenuAnalyzeRequest(BaseModel):
@@ -216,6 +235,7 @@ class PersonalizedDish(BaseModel):
 class PersonalizedMenuResponse(BaseModel):
     restaurant_id: str
     restaurant_name: str
+    restaurant_location: str
     dishes: list[PersonalizedDish]
     safety_score: float
 

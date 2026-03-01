@@ -61,10 +61,10 @@ export async function fetchHistory(profileId) {
 
 // ── B2B Restaurant API ─────────────────────────────
 
-export async function createRestaurant(name) {
+export async function createRestaurant(name, location = "") {
   return request("/api/restaurant", {
     method: "POST",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, location }),
   });
 }
 
@@ -104,4 +104,22 @@ export async function fetchPersonalizedMenu(restaurantId, profileId) {
 
 export async function fetchRestaurantAnalytics(restaurantId) {
   return request(`/api/restaurant/${encodeURIComponent(restaurantId)}/analytics`);
+}
+
+// ── Meal Records API ───────────────────────────────
+
+export async function createMealRecord(profileId, restaurantId, dishName, ingredients) {
+  return request("/api/meal-record", {
+    method: "POST",
+    body: JSON.stringify({
+      profile_id: profileId,
+      restaurant_id: restaurantId,
+      dish_name: dishName,
+      ingredients,
+    }),
+  });
+}
+
+export async function fetchMealRecords(profileId) {
+  return request(`/api/meal-records/${encodeURIComponent(profileId)}`);
 }

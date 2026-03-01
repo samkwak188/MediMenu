@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
+import { jsPDF } from "jspdf";
 import {
+  createMealRecord,
   createProfile,
+  fetchMealRecords,
   fetchPersonalizedMenu,
   fetchProfile,
 } from "./api";
@@ -10,6 +13,150 @@ import ProfileForm from "./components/ProfileForm";
 import QRScanner from "./components/QRScanner";
 import RestaurantDashboard from "./components/RestaurantDashboard";
 import logo from "../logo.png";
+
+function loadImageAsBase64(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+async function generateMealHistoryPDF(records, logoSrc) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  const brandColor = [59, 130, 246];
+  const textDark = [15, 23, 42];
+  const textMuted = [100, 116, 139];
+  const lineSoft = [226, 232, 240];
+
+  const logoBase64 = await loadImageAsBase64(logoSrc);
+
+  function addHeader() {
+    if (logoBase64) {
+      const logoH = 12;
+      const logoW = logoH * 3.2;
+      doc.addImage(logoBase64, "PNG", margin, y, logoW, logoH);
+      y += logoH + 2;
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.setTextColor(...brandColor);
+      doc.text("MediMenu", margin, y + 7);
+      y += 12;
+    }
+    doc.setDrawColor(...brandColor);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+  }
+
+  function checkPageBreak(needed) {
+    if (y + needed > pageH - margin) {
+      doc.addPage();
+      y = margin;
+      addHeader();
+    }
+  }
+
+  addHeader();
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(...textDark);
+  doc.text("Meal History Report", margin, y);
+  y += 7;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...textMuted);
+  doc.text(`Generated on ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, margin, y);
+  y += 4;
+  doc.text(`${records.length} meal${records.length !== 1 ? "s" : ""} recorded`, margin, y);
+  y += 10;
+
+  if (records.length === 0) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(11);
+    doc.setTextColor(...textMuted);
+    doc.text("No meals recorded yet.", margin, y);
+  } else {
+    records.forEach((rec, idx) => {
+      const ingredientText = rec.ingredients?.length
+        ? rec.ingredients.join(", ")
+        : "Not available";
+      const ingredientLines = doc.splitTextToSize(`Ingredients: ${ingredientText}`, contentW - 10);
+      const cardH = 24 + ingredientLines.length * 4;
+
+      checkPageBreak(cardH + 4);
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(...lineSoft);
+      doc.roundedRect(margin, y, contentW, cardH, 3, 3, "FD");
+
+      const innerX = margin + 5;
+      let cy = y + 6;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...textDark);
+      doc.text(rec.dish_name, innerX, cy);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...textMuted);
+      doc.text(rec.date, pageW - margin - 5, cy, { align: "right" });
+
+      cy += 5.5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...brandColor);
+      const restaurantLine = rec.restaurant_location
+        ? `${rec.restaurant_name} — ${rec.restaurant_location}`
+        : rec.restaurant_name;
+      doc.text(restaurantLine, innerX, cy);
+
+      cy += 5.5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...textMuted);
+      doc.text(ingredientLines, innerX, cy);
+
+      y += cardH + 3;
+    });
+  }
+
+  // Footer on every page
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...textMuted);
+    doc.text(
+      `MediMenu — AI-powered food safety for allergens & medication interactions`,
+      pageW / 2,
+      pageH - 8,
+      { align: "center" }
+    );
+    doc.text(`Page ${p} of ${totalPages}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  doc.save("MediMenu_Meal_History.pdf");
+}
 
 const STORAGE_KEY = "medimenu_profile_id";
 const AUTH_KEY = "medimenu_user";
@@ -21,8 +168,9 @@ localStorage.removeItem("medimenu_restaurant_id");
 localStorage.removeItem("medimenu_images");
 
 /* ── Personalized Restaurant Menu View (QR scan) ── */
-function PersonalizedView({ restaurantData, onBack }) {
+function PersonalizedView({ restaurantData, onBack, onRecordMeal }) {
   const [filter, setFilter] = useState(null); // null = show all, "green" | "yellow" | "red"
+  const [recorded, setRecorded] = useState({});
 
   if (!restaurantData) return null;
 
@@ -133,6 +281,18 @@ function PersonalizedView({ restaurantData, onBack }) {
                 ))}
               </ul>
             )}
+            <button
+              className={`btn btn-sm ${recorded[i] ? "btn-ghost" : "btn-accent"}`}
+              type="button"
+              disabled={!!recorded[i]}
+              style={{ marginTop: "0.75rem" }}
+              onClick={async () => {
+                await onRecordMeal(dish.dish, dish.inferred_ingredients || []);
+                setRecorded((prev) => ({ ...prev, [i]: true }));
+              }}
+            >
+              {recorded[i] ? "Recorded ✓" : "I ate this"}
+            </button>
           </div>
         ))}
         {filteredDishes.length === 0 && (
@@ -157,6 +317,10 @@ function ConsumerApp({ user, onLogout }) {
   const [personalizedData, setPersonalizedData] = useState(null);
   const [loadingPersonalized, setLoadingPersonalized] = useState(false);
 
+  // Meal records state
+  const [mealRecords, setMealRecords] = useState([]);
+  const [showMealHistory, setShowMealHistory] = useState(false);
+
   // Load saved profile
   useEffect(() => {
     if (!profileId) return;
@@ -177,6 +341,30 @@ function ConsumerApp({ user, onLogout }) {
     })();
     return () => { cancelled = true; };
   }, [profileId]);
+
+  useEffect(() => {
+    if (!profileId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const records = await fetchMealRecords(profileId);
+        if (!cancelled) setMealRecords(records);
+      } catch {
+        // ignore — records just won't load
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profileId]);
+
+  async function handleRecordMeal(dishName, ingredients) {
+    if (!profileId || !scannedRestaurantId) return;
+    try {
+      const record = await createMealRecord(profileId, scannedRestaurantId, dishName, ingredients);
+      setMealRecords((prev) => [record, ...prev]);
+    } catch (err) {
+      setError(err.message || "Failed to record meal.");
+    }
+  }
 
   async function handleCreateProfile({ allergies, medications, dietaryRestrictions }) {
     setLoadingProfile(true);
@@ -219,6 +407,8 @@ function ConsumerApp({ user, onLogout }) {
     localStorage.removeItem(STORAGE_KEY);
     setPersonalizedData(null);
     setScannedRestaurantId(null);
+    setMealRecords([]);
+    setShowMealHistory(false);
   }
 
   return (
@@ -269,10 +459,61 @@ function ConsumerApp({ user, onLogout }) {
                 <PersonalizedView
                   restaurantData={personalizedData}
                   onBack={handleBackToScanner}
+                  onRecordMeal={handleRecordMeal}
                 />
               ) : null}
             </>
           )}
+
+          {/* Meal History */}
+          <section className="meal-history-section">
+            <div className="meal-history-header">
+              <button
+                className="btn btn-ghost meal-history-toggle"
+                type="button"
+                onClick={() => setShowMealHistory((v) => !v)}
+              >
+                {showMealHistory ? "▼" : "▶"} My Meal History ({mealRecords.length})
+              </button>
+              {mealRecords.length > 0 && (
+                <button
+                  className="btn btn-accent btn-sm"
+                  type="button"
+                  onClick={() => generateMealHistoryPDF(mealRecords, logo)}
+                >
+                  ↓ Download PDF
+                </button>
+              )}
+            </div>
+            {showMealHistory && (
+              <div className="meal-history-list">
+                {mealRecords.length === 0 ? (
+                  <p className="muted" style={{ textAlign: "center", padding: "1.5rem" }}>
+                    No meals recorded yet. Scan a QR code and tap "I ate this" to start tracking.
+                  </p>
+                ) : (
+                  mealRecords.map((rec) => (
+                    <div key={rec.id} className="meal-record-card">
+                      <div className="meal-record-header">
+                        <h4>{rec.dish_name}</h4>
+                        <span className="meal-record-date">{rec.date}</span>
+                      </div>
+                      <p className="meal-record-restaurant">
+                        {rec.restaurant_name}
+                        {rec.restaurant_location ? ` — ${rec.restaurant_location}` : ""}
+                      </p>
+                      {rec.ingredients?.length > 0 && (
+                        <p className="meal-record-ingredients">
+                          <span className="ingredient-label">Ingredients: </span>
+                          {rec.ingredients.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

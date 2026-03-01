@@ -1088,6 +1088,10 @@ textarea {
   margin-bottom: 1rem;
 }
 
+.sidebar-form-col {
+  flex-direction: column;
+}
+
 .sidebar-input {
   flex: 1;
   min-width: 0;
@@ -1106,9 +1110,7 @@ textarea {
 
 .restaurant-item {
   width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
   padding: 0.7rem 0.85rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -1131,7 +1133,21 @@ textarea {
   font-weight: 600;
 }
 
+.restaurant-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .restaurant-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restaurant-item-location {
+  font-size: 0.7rem;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2006,6 +2022,83 @@ textarea {
   flex-shrink: 0;
 }
 
+
+/* ─── Meal History ────────────────────────────────── */
+
+.meal-history-section {
+  margin-top: 1.5rem;
+}
+
+.meal-history-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.meal-history-toggle {
+  flex: 1;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  padding: 0.9rem 1.25rem;
+  background: var(--surface);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-sm);
+}
+
+.meal-history-list {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.meal-record-card {
+  background: var(--surface);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-sm);
+}
+
+.meal-record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.meal-record-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.meal-record-date {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.meal-record-restaurant {
+  font-size: 0.82rem;
+  color: var(--primary);
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+.meal-record-ingredients {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
 @media (max-width: 768px) {
   .capture-bar {

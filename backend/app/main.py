@@ -12,6 +12,7 @@ from .database import (
     _compute_safety_score,
     confirm_restaurant_menu,
     create_analysis,
+    create_meal_record,
     create_profile,
     create_restaurant,
     get_confirmed_menu,
@@ -21,6 +22,7 @@ from .database import (
     get_restaurant_analytics,
     initialize_database,
     list_history,
+    list_meal_records,
     list_restaurants,
     log_scan,
     save_restaurant_menu,
@@ -31,6 +33,8 @@ from .schemas import (
     AnalyzeResponse,
     HistoryItem,
     HistoryResponse,
+    MealRecordCreateRequest,
+    MealRecordResponse,
     MenuAnalyzeRequest,
     MenuAnalysisModel,
     MenuEditRequest,
@@ -150,7 +154,7 @@ def history_endpoint(profile_id: str) -> HistoryResponse:
 
 @app.post("/api/restaurant", response_model=RestaurantResponse)
 def create_restaurant_endpoint(payload: RestaurantCreateRequest) -> RestaurantResponse:
-    record = create_restaurant(name=payload.name)
+    record = create_restaurant(name=payload.name, location=payload.location)
     return RestaurantResponse(**record)
 
 
@@ -252,7 +256,11 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
         raise HTTPException(status_code=404, detail="This restaurant has not published a confirmed menu yet.")
 
     # Re-evaluate each dish against the user's specific profile
-    user_allergies = set(a.lower() for a in profile["allergies"])
+    IGNORED_ALLERGY_WORDS = {"none", "n/a", "na", "no", "nothing", "nil", ""}
+    user_allergies = set(
+        a.lower() for a in profile["allergies"]
+        if a.strip().lower() not in IGNORED_ALLERGY_WORDS
+    )
     user_restrictions = set(r.lower() for r in profile.get("dietary_restrictions", []))
     flagged_allergens: list[str] = []
 
@@ -265,6 +273,7 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
 
         flags = []
         risk = "green"
+        cross_contact_relevant = False
 
         # Check allergens
         for allergen in user_allergies:
@@ -282,6 +291,7 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
                     "detail": f"Possible cross-contact with {allergen} — confirm with staff",
                     "severity": "medium",
                 })
+                cross_contact_relevant = True
                 if risk != "red":
                     risk = "yellow"
 
@@ -300,7 +310,7 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
             "risk": risk,
             "flags": flags,
             "safe_alternatives": dish.get("safe_alternatives"),
-            "cross_contact_risk": cross_contact,
+            "cross_contact_risk": cross_contact and cross_contact_relevant,
             "confirmed_allergens": dish.get("confirmed_allergens", []),
         })
 
@@ -313,6 +323,7 @@ def personalized_menu_endpoint(restaurant_id: str, profile_id: str) -> Personali
     return PersonalizedMenuResponse(
         restaurant_id=restaurant_id,
         restaurant_name=restaurant["name"],
+        restaurant_location=restaurant.get("location", ""),
         dishes=[PersonalizedDish(**d) for d in personalized_dishes],
         safety_score=personalized_score,
     )
@@ -358,3 +369,35 @@ def restaurant_analytics_endpoint(restaurant_id: str) -> RestaurantAnalyticsResp
 
     data = get_restaurant_analytics(restaurant_id)
     return RestaurantAnalyticsResponse(**data)
+
+
+# ── Meal Record Endpoints ─────────────────────────────
+
+@app.post("/api/meal-record", response_model=MealRecordResponse)
+def create_meal_record_endpoint(payload: MealRecordCreateRequest) -> MealRecordResponse:
+    profile = get_profile(payload.profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+
+    restaurant = get_restaurant(payload.restaurant_id)
+    if restaurant is None:
+        raise HTTPException(status_code=404, detail="Restaurant not found.")
+
+    record = create_meal_record(
+        profile_id=payload.profile_id,
+        restaurant_name=restaurant["name"],
+        restaurant_location=restaurant.get("location", ""),
+        dish_name=payload.dish_name,
+        ingredients=payload.ingredients,
+    )
+    return MealRecordResponse(**record)
+
+
+@app.get("/api/meal-records/{profile_id}", response_model=list[MealRecordResponse])
+def list_meal_records_endpoint(profile_id: str) -> list[MealRecordResponse]:
+    profile = get_profile(profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+
+    records = list_meal_records(profile_id)
+    return [MealRecordResponse(**r) for r in records]
