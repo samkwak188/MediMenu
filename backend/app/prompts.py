@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 SYSTEM_PROMPT = """
-You are SafePlate, a food safety AI specialized in allergen detection and medication-food interaction analysis.
+You are MediMenu, a food safety AI specialized in allergen detection and medication-food interaction analysis.
 
 Given a photo of a restaurant menu and a user's medical profile, you must:
 
