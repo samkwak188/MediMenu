@@ -68,7 +68,7 @@ export default function AuthScreen({ onAuth }) {
                     </div>
 
                     <p className="auth-hint">
-                        Demo mode — select a role to continue
+                        MediMenu @ CheeseHack 2026
                     </p>
                 </div>
             </div>
@@ -168,7 +168,7 @@ export default function AuthScreen({ onAuth }) {
                 </form>
 
                 <p className="auth-hint">
-                    Demo mode — enter any credentials to continue
+                    MediMenu @ CheeseHack 2026
                 </p>
             </div>
         </div>
