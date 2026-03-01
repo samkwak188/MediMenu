@@ -323,13 +323,14 @@ export default function RestaurantDashboard({ onLogout }) {
                                 </div>
                             )}
 
-                            {/* QR Code */}
+                            {/* Stats Row: QR Code + Analytics */}
                             <div className="dashboard-stats-row">
                                 <QRCodeCard
                                     restaurantId={selectedId}
                                     restaurantName={selectedRestaurant?.name}
                                     confirmed={menu?.confirmed}
                                 />
+                                <RestaurantAnalytics analytics={analytics} />
                             </div>
 
                             {/* Editable Dish Review */}
