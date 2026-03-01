@@ -56,6 +56,9 @@ MediMenu is a powerful, dual-sided web application that bridges the gap between 
 
 ## 🚀 Getting Started
 
+You can try our app here: https://medimenu-frontend.onrender.com
+
+For local set up, refer to below steps:
 ### Backend Setup
 
 1. **Navigate to the backend directory**:
@@ -124,38 +127,13 @@ MediMenu is a powerful, dual-sided web application that bridges the gap between 
 - `GET /api/restaurant/{restaurant_id}/menu/personalized` - Get a personalized view of the menu for a specific profile
 - `GET /api/restaurant/{restaurant_id}/analytics` - View scan analytics
 
-## 🌍 Deployment Notes
-
-- **Frontend**: Deploy frontend to Vercel, Netlify, or Cloudflare Pages.
-- **Backend**: Deploy backend to Railway, Render, or Fly.io.
-- **Environment Context**:
-  - Frontend: Set `VITE_API_BASE_URL` to your live backend domain.
-  - Backend: Set `OPENAI_API_KEY`, `OPENAI_MODEL`, and update `CORS_ORIGINS` to allow your live frontend domain.
 
 ## 📱 Mobile Deployment (Local & Cloud)
 
 MediMenu is designed as a responsive, mobile-first web application. Here is how you can deploy and view it on a mobile device:
 
-### Local Network Testing (Your Phone)
-To test the app on your phone while running it on your computer:
-1. Ensure your phone and computer are on the **same Wi-Fi network**.
-2. Run the backend using your local IP address:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
-   ```
-3. Run the frontend using the host flag to expose it to your network:
-   ```bash
-   npm run dev -- --host
-   ```
-4. Open the `Network` URL provided by Vite (e.g., `http://192.168.1.5:5173`) in your phone's browser.
-
-### Cloud Deployment (PWA)
-For a native-like mobile experience without an App Store:
-1. Deploy the Frontend to **Vercel** or **Netlify**.
-2. Users can open the live URL in Safari (iOS) or Chrome (Android).
-3. Tap **"Share"** > **"Add to Home Screen"**. This will install MediMenu as an app icon on the mobile device, leveraging the responsive glassmorphism UI perfectly on mobile screens.
-## 🎯 Purpose
-MediMenu aims to make dining out safe, stress-free, and accessible for everyone, especially those with severe allergies, dietary restrictions, or food-medication interactions. By providing instantaneous, AI-driven menu transparency, we empower diners to make safe choices while helping restaurants cater to a wider audience without the operational overhead of manually cross-referencing ingredients.
+### Local Network (Your Phone)
+Go to https://medimenu-frontend.onrender.com on your phone for demo.
 
 ## 📈 Financial View
 - **B2B (Restaurants)**: A tiered subscription model. Basic menu digitization is free, but advanced features like cross-contact analysis, automated allergen tagging, and diner analytics are part of a premium tier.
@@ -175,3 +153,4 @@ MediMenu aims to make dining out safe, stress-free, and accessible for everyone,
 
 ## 🏛️ Source & Usage
 Built with ❤️ for **CheeseHack 2026** at **UW-Madison**.
+
