@@ -146,10 +146,10 @@ Go to https://medimenu-frontend.onrender.com on your phone for demo.
 - **Expanded Medical Database**: Partnering with healthcare providers to maintain an up-to-date database of complex food-medication interactions.
 
 ## 👩‍💻 Authors
-- Jenny
-- Sam 
-- Sherry
-- Mckenna
+- Jenny [LinkedIn](www.linkedin.com/in/jiayichen73a118318)
+- Sam [samkwak188 (github)](https://github.com/samkwak188)
+- Sherry [Sherry1247 (github)](https://github.com/Sherry1247)
+- Mckenna [mckenaz (github)](https://github.com/mckenaz)
 
 ## 🏛️ Source & Usage
 Built with ❤️ for **CheeseHack 2026** at **UW-Madison**.
